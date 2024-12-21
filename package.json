@@ -7,7 +7,7 @@
     "dev": "npx nodemon",
     "build": "tsc",
     "format": "prettier --write .",
-    "prepare": "husky install",
+    "prepare": "husky",
     "check-types": "tsc --pretty --noEmit",
     "check-format": "prettier --check .",
     "check-lint": "eslint . -c eslint.config.mjs"
