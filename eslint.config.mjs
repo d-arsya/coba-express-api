@@ -23,7 +23,8 @@ export default [
     "array-callback-return": "off",
     "@typescript-eslint/no-misused-promises": "off",
     "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-wrapper-object-types": "off",
+      "@typescript-eslint/no-wrapper-object-types": "off",
+    "@typescript-eslint/no-explicit-any":"off"
     }
   }
 ]

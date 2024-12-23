@@ -65,6 +65,7 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
     })
   } else {
     logger.info('Success create new product')
+    value.product_id = uuid4()
     const product = await createProductFromDB(value)
     res.status(201).send({
       status: true,
