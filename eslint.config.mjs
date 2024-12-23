@@ -21,7 +21,9 @@ export default [
     "@typescript-eslint/strict-boolean-expressions": "off",
     "no-return-assign": "off",
     "array-callback-return": "off",
-    "@typescript-eslint/no-misused-promises": "off"
+    "@typescript-eslint/no-misused-promises": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-wrapper-object-types": "off",
     }
   }
 ]

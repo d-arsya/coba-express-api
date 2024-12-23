@@ -1,10 +1,23 @@
-import express, { Request, Response, Application, NextFunction } from 'express'
+import express, { Application } from 'express'
+import { routes } from './routes'
+import { logger } from './utils/logger'
+import bodyParser from 'body-parser'
+import cors from 'cors'
+import './utils/DBConnect'
 
 const app: Application = express()
-const port: number = 3000
+const port: Number = 3000
 
-app.use('/health', (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).send({ status: true, statusCode: 200, data: { message: 'Server running' } })
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+app.use(cors())
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', '*')
+  res.setHeader('Access-Control-Allow-Headers', '*')
+  next()
 })
 
-app.listen(port, () => console.log(`Server running on port ${port}`))
+routes(app)
+
+app.listen(port, () => logger.info(`Server running on port ${port}`))
