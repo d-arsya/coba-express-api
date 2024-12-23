@@ -1,5 +1,5 @@
 import express, { Application } from 'express'
-import { routes } from './routes'
+import { routes } from './routes/index'
 import { logger } from './utils/logger'
 import bodyParser from 'body-parser'
 import cors from 'cors'
