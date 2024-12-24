@@ -9,6 +9,13 @@ import {
   getProductsFromDB
 } from '../services/product.service'
 import uuid4 from 'uuid4'
+import { put, del } from '@vercel/blob'
+import { decode } from 'base64-arraybuffer'
+
+import { createClient } from '@supabase/supabase-js'
+import config from '../config/environment'
+
+const supabase = createClient(config.SUPABASE_URL || 'url', config.SUPABASE_KEY || 'key')
 
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
   logger.info('Get all products data')
@@ -22,6 +29,20 @@ export const deleteProduct = async (req: Request, res: Response, next: NextFunct
     params: { id }
   } = req
   const deletedData = await deleteProductFromDB(id)
+
+  if (deletedData?.photo?.includes(config.SUPABASE_URL || 'ga')) {
+    // <<<<----USE SUPABASE---->>>>
+    const { data, error } = await supabase.storage
+      .from(config.SUPABASE_BUCKET || 'ga')
+      .remove([
+        deletedData?.photo?.replace(`${config.SUPABASE_URL}/storage/v1/object/public/${config.SUPABASE_BUCKET}/`, '') ||
+          'ga'
+      ])
+  } else {
+    // <<<<----USE VERCEL---->>>>
+    del(deletedData?.photo || 'ga')
+  }
+
   if (deletedData) {
     res.status(204).send({ status: true, statusCode: 204, message: 'Product deleted successfully' })
   } else {
@@ -66,6 +87,21 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
   } else {
     logger.info('Success create new product')
     value.product_id = uuid4()
+    const file = req.file
+    const fileBase64 = decode(file?.buffer.toString('base64') || 'gata')
+
+    if (config.STORAGE_USED == 'supabase') {
+      // <<<<----USE SUPABASE---->>>>
+      const { data, error } = await supabase.storage
+        .from(config.SUPABASE_BUCKET || 'ga')
+        .upload(`avatars/${uuid4()}.${file?.originalname.split('.').pop()}`, fileBase64)
+      value.photo = `${config.SUPABASE_URL}/storage/v1/object/public/${data?.fullPath}`
+    } else {
+      // <<<<----USE VERCEL---->>>>
+      const fileUpload = await put(`avatars/avatar.png`, fileBase64, { access: 'public' })
+      value.photo = fileUpload.url
+    }
+
     const product = await createProductFromDB(value)
     res.status(201).send({
       status: true,
