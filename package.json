@@ -10,7 +10,8 @@
     "prepare": "husky",
     "check-types": "tsc --pretty --noEmit",
     "check-format": "prettier --check .",
-    "check-lint": "eslint . -c eslint.config.mjs"
+    "check-lint": "eslint . -c eslint.config.mjs",
+    "postinstall": "prisma generate"
   },
   "husky": {
     "hooks": {
