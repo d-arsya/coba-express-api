@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getProducts, createProduct, getProduct, deleteProduct, updateProduct } from '../controllers/product.controller'
+import { getProducts, getProduct, deleteProduct, createProduct, updateProduct } from '../controllers/product.controller'
 import multer from 'multer'
 
 export const ProductRouter: Router = Router()
@@ -11,4 +11,4 @@ ProductRouter.get('/', getProducts)
 ProductRouter.get('/:id', getProduct)
 ProductRouter.post('/', upload.single('photo'), createProduct)
 ProductRouter.delete('/:id', deleteProduct)
-ProductRouter.put('/:id', updateProduct)
+ProductRouter.put('/:id', upload.single('photo'), updateProduct)

@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { logger } from '../utils/logger'
 import { createProductValidation } from '../validations/product.validation'
 import {
@@ -8,68 +8,53 @@ import {
   getProductFromDB,
   getProductsFromDB
 } from '../services/product.service'
-import uuid4 from 'uuid4'
 import { put, del } from '@vercel/blob'
 import { decode } from 'base64-arraybuffer'
 
-import { createClient } from '@supabase/supabase-js'
-import config from '../config/environment'
-
-const supabase = createClient(config.SUPABASE_URL || 'url', config.SUPABASE_KEY || 'key')
-
 export const getProducts = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info('Get all products data')
   const products = await getProductsFromDB()
+  logger.info('Get all products data')
   res.status(200).send({ status: true, statusCode: 200, data: products })
+}
+export const getProduct = async (req: Request, res: Response, next: NextFunction) => {
+  const product = await getProductFromDB(parseInt(req.params.id))
+  if (product) {
+    logger.info('Get product data')
+    res.status(200).send({ status: true, statusCode: 200, data: product })
+  } else {
+    logger.error('Get product failed')
+    res.status(404).send({ status: false, statusCode: 404, message: 'Product not found' })
+  }
 }
 
 export const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info('Delete product data')
-  const {
-    params: { id }
-  } = req
-  const deletedData = await deleteProductFromDB(id)
-
-  if (deletedData?.photo?.includes(config.SUPABASE_URL || 'ga')) {
-    // <<<<----USE SUPABASE---->>>>
-    const { data, error } = await supabase.storage
-      .from(config.SUPABASE_BUCKET || 'ga')
-      .remove([
-        deletedData?.photo?.replace(`${config.SUPABASE_URL}/storage/v1/object/public/${config.SUPABASE_BUCKET}/`, '') ||
-          'ga'
-      ])
-  } else {
-    // <<<<----USE VERCEL---->>>>
-    del(deletedData?.photo || 'ga')
-  }
+  const deletedData = await deleteProductFromDB(parseInt(req.params.id))
+  del(deletedData?.photo || 'ga')
 
   if (deletedData) {
+    logger.info('Delete product data')
     res.status(204).send({ status: true, statusCode: 204, message: 'Product deleted successfully' })
   } else {
+    logger.error('Delete product failed')
     res.status(404).send({ status: false, statusCode: 404, message: 'Product not found' })
   }
 }
 export const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info('Update product data')
-  const {
-    params: { id }
-  } = req
-  const originalData = await getProductFromDB(id)
-  const updatedData = await updateProductFromDB(id, req.body)
-  if (updatedData) {
-    res.status(200).send({ status: true, statusCode: 200, data: updatedData, original: originalData })
-  } else {
-    res.status(404).send({ status: false, statusCode: 404, message: 'Product not found' })
+  const originalData = await getProductFromDB(parseInt(req.params.id))
+  const file = req.file
+  if (file) {
+    await del(originalData?.photo || 'ga')
+    const fileBase64 = decode(file?.buffer.toString('base64') || 'gata')
+    const fileUpload = await put(`products/product.${file?.originalname.split('.').pop()}`, fileBase64, {
+      access: 'public'
+    })
+    req.body.photo = fileUpload.url
   }
-}
-export const getProduct = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info('Get product data')
-  const {
-    params: { id }
-  } = req
-  const product = await getProductFromDB(id)
-  if (product) {
-    res.status(200).send({ status: true, statusCode: 200, data: product })
+
+  const updatedData = await updateProductFromDB(parseInt(req.params.id), req.body)
+  if (updatedData) {
+    logger.info('Update product data')
+    res.status(200).send({ status: true, statusCode: 200, data: updatedData, original: originalData })
   } else {
     res.status(404).send({ status: false, statusCode: 404, message: 'Product not found' })
   }
@@ -86,21 +71,12 @@ export const createProduct = async (req: Request, res: Response, next: NextFunct
     })
   } else {
     logger.info('Success create new product')
-    value.product_id = uuid4()
     const file = req.file
     const fileBase64 = decode(file?.buffer.toString('base64') || 'gata')
-
-    if (config.STORAGE_USED == 'supabase') {
-      // <<<<----USE SUPABASE---->>>>
-      const { data, error } = await supabase.storage
-        .from(config.SUPABASE_BUCKET || 'ga')
-        .upload(`avatars/${uuid4()}.${file?.originalname.split('.').pop()}`, fileBase64)
-      value.photo = `${config.SUPABASE_URL}/storage/v1/object/public/${data?.fullPath}`
-    } else {
-      // <<<<----USE VERCEL---->>>>
-      const fileUpload = await put(`avatars/avatar.png`, fileBase64, { access: 'public' })
-      value.photo = fileUpload.url
-    }
+    const fileUpload = await put(`products/product.${file?.originalname.split('.').pop()}`, fileBase64, {
+      access: 'public'
+    })
+    value.photo = fileUpload.url
 
     const product = await createProductFromDB(value)
     res.status(201).send({
